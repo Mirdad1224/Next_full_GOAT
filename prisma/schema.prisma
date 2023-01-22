@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          ROLES     @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  product       Product[]
+  createdAt     DateTime? @default(now())
+  updatedAt     DateTime? @updatedAt
+  review        Review[]
+  Orders        Orders[]
+}
+
+enum ROLES {
+  ADMIN
+  USER
+  SUPERADMIN
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Review {
+  id        String    @id @default(cuid())
+  message   String
+  rating    Int
+  productId String
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Orders {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city           String?
+  country        String?
+  addressLine1   String?
+  addressLine2   String?
+  postalCode     String?
+  email          String?
+  name           String?
+  phone          String?
+  deliveryStatus DeliveryStatus @default(PENDING)
+  shippingCharge Int
+  items          Json[]
+  totalAmount    Int
+  paymentIntent  String
+  customerId     String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime?      @updatedAt
+}
+
+model Product {
+  id              String    @id @default(cuid())
+  userId          String
+  brand           String
+  title           String
+  category        String
+  section         String
+  subSection      String
+  metaDescription String
+  description     String
+  images          String[]
+  oldPrice        Float
+  newPrice        Float
+  review          Review[]
+  countInStock    Int
+  sold            Int       @default(0)
+  slug            String
+  rating          Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime? @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([title, brand, category, section, slug, subSection])
+}
+
+enum DeliveryStatus {
+  PENDING
+  SHIPPING
+  SUCCESS
+  CANCELED
+}
+
